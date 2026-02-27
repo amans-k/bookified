@@ -72,11 +72,10 @@ const UploadForm = () => {
                 contentType: 'application/pdf'
             });
 
-            // ✅ Cover image handling
+            // ✅ Simple cover handling: only use uploaded cover or fallback
             let coverUrl: string;
 
-            if (data.coverImage) {
-                // User uploaded cover
+            if(data.coverImage) {
                 const coverFile = data.coverImage;
                 const uploadedCoverBlob = await upload(`${fileTitle}_cover.png`, coverFile, {
                     access: 'public',
@@ -84,27 +83,9 @@ const UploadForm = () => {
                     contentType: coverFile.type
                 });
                 coverUrl = uploadedCoverBlob.url;
-            } else if (parsedPDF.cover) {
-                // PDF cover exists — fetch safely
-                try {
-                    const response = await fetch(parsedPDF.cover);
-                    if (!response.ok) throw new Error('Failed to fetch PDF cover');
-
-                    const blob = await response.blob();
-
-                    const uploadedCoverBlob = await upload(`${fileTitle}_cover.png`, blob, {
-                        access: 'public',
-                        handleUploadUrl: '/api/upload',
-                        contentType: 'image/png'
-                    });
-
-                    coverUrl = uploadedCoverBlob.url;
-                } catch (err) {
-                    console.warn('PDF cover fetch failed, using default cover', err);
-                    coverUrl = '/assets/book.png'; // ✅ fallback to existing public/assets/book.png
-                }
             } else {
-                coverUrl = '/assets/book.png'; // ✅ fallback
+                // fallback to existing public asset
+                coverUrl = '/assets/book.png';
             }
 
             const book = await createBook({
@@ -172,7 +153,7 @@ const UploadForm = () => {
                             acceptTypes={ACCEPTED_IMAGE_TYPES}
                             icon={ImageIcon}
                             placeholder="Click to upload cover image"
-                            hint="Leave empty to auto-generate from PDF"
+                            hint="Leave empty to use default cover"
                             disabled={isSubmitting}
                         />
 
