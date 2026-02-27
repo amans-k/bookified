@@ -35,16 +35,14 @@ const UploadForm = () => {
         defaultValues: {
             title: '',
             author: '',
-            persona: '',
+            persona: DEFAULT_VOICE,
             pdfFile: undefined,
             coverImage: undefined,
         },
     });
 
     const onSubmit = async (data: BookUploadFormValues) => {
-        if(!userId) {
-           return toast.error("Please login to upload books");
-        }
+        if(!userId) return toast.error("Please login to upload books");
 
         setIsSubmitting(true);
 
@@ -53,8 +51,8 @@ const UploadForm = () => {
 
             if(existsCheck.exists && existsCheck.book) {
                 toast.info("Book with same title already exists.");
-                form.reset()
-                router.push(`/books/${existsCheck.book.slug}`)
+                form.reset();
+                router.push(`/books/${existsCheck.book.slug}`);
                 return;
             }
 
@@ -64,7 +62,7 @@ const UploadForm = () => {
             const parsedPDF = await parsePDFFile(pdfFile);
 
             if(parsedPDF.content.length === 0) {
-                toast.error("Failed to parse PDF. Please try again with a different file.");
+                toast.error("Failed to parse PDF. Please try a different file.");
                 return;
             }
 
@@ -74,7 +72,7 @@ const UploadForm = () => {
                 contentType: 'application/pdf'
             });
 
-            // ✅ IMAGE FIX
+            // ✅ Cover image handling
             let coverUrl: string;
 
             if (data.coverImage) {
@@ -122,25 +120,20 @@ const UploadForm = () => {
 
             if(!book.success) {
                 toast.error(book.error as string || "Failed to create book");
-                if (book.isBillingError) {
-                    router.push("/subscriptions");
-                }
+                if (book.isBillingError) router.push("/subscriptions");
                 return;
             }
 
             if(book.alreadyExists) {
                 toast.info("Book with same title already exists.");
-                form.reset()
-                router.push(`/books/${book.data.slug}`)
+                form.reset();
+                router.push(`/books/${book.data.slug}`);
                 return;
             }
 
             const segments = await saveBookSegments(book.data._id, userId, parsedPDF.content);
 
-            if(!segments.success) {
-                toast.error("Failed to save book segments");
-                throw new Error("Failed to save book segments");
-            }
+            if(!segments.success) throw new Error("Failed to save book segments");
 
             form.reset();
             router.push('/');
