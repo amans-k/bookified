@@ -24,7 +24,7 @@ const UploadForm = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
     const { userId } = useAuth();
-    const router = useRouter()
+    const router = useRouter();
 
     useEffect(() => {
         setIsMounted(true);
@@ -101,10 +101,10 @@ const UploadForm = () => {
                     coverUrl = uploadedCoverBlob.url;
                 } catch (err) {
                     console.warn('PDF cover fetch failed, using default cover', err);
-                    coverUrl = '/default-cover.png'; // fallback
+                    coverUrl = '/assets/book.png'; // ✅ fallback to existing public/assets/book.png
                 }
             } else {
-                coverUrl = '/default-cover.png'; // fallback
+                coverUrl = '/assets/book.png'; // ✅ fallback
             }
 
             const book = await createBook({
