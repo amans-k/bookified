@@ -26,11 +26,20 @@ export default async function BookDetailsPage({
     result = await getBookBySlug(slug);
   } catch (error) {
     console.error("Error fetching book:", error);
-    redirect("/");
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-lg">Loading book...</p>
+      </div>
+    );
   }
 
+  // 🔥 IMPORTANT CHANGE HERE
   if (!result?.success || !result?.data) {
-    redirect("/");
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-lg">Loading book...</p>
+      </div>
+    );
   }
 
   const book = result.data;
