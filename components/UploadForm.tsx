@@ -13,7 +13,7 @@ import { ACCEPTED_PDF_TYPES, ACCEPTED_IMAGE_TYPES, DEFAULT_VOICE } from '@/lib/c
 import FileUploader from './FileUploader';
 import VoiceSelector from './VoiceSelector';
 import LoadingOverlay from './LoadingOverlay';
-import {useAuth, useUser} from "@clerk/nextjs";
+import {useAuth} from "@clerk/nextjs";
 import { toast } from 'sonner';
 import {checkBookExists, createBook, saveBookSegments} from "@/lib/actions/book.actions";
 import {useRouter} from "next/navigation";
@@ -48,8 +48,6 @@ const UploadForm = () => {
 
         setIsSubmitting(true);
 
-        // PostHog -> Track Book Uploads...
-
         try {
             const existsCheck = await checkBookExists(data.title);
 
@@ -76,9 +74,11 @@ const UploadForm = () => {
                 contentType: 'application/pdf'
             });
 
+            // ✅ IMAGE FIX
             let coverUrl: string;
 
-            if(data.coverImage) {
+            if (data.coverImage) {
+                // User uploaded cover
                 const coverFile = data.coverImage;
                 const uploadedCoverBlob = await upload(`${fileTitle}_cover.png`, coverFile, {
                     access: 'public',
@@ -86,16 +86,27 @@ const UploadForm = () => {
                     contentType: coverFile.type
                 });
                 coverUrl = uploadedCoverBlob.url;
-            } else {
-                const response = await fetch(parsedPDF.cover)
-                const blob = await response.blob();
+            } else if (parsedPDF.cover) {
+                // PDF cover exists — fetch safely
+                try {
+                    const response = await fetch(parsedPDF.cover);
+                    if (!response.ok) throw new Error('Failed to fetch PDF cover');
 
-                const uploadedCoverBlob = await upload(`${fileTitle}_cover.png`, blob, {
-                    access: 'public',
-                    handleUploadUrl: '/api/upload',
-                    contentType: 'image/png'
-                });
-                coverUrl = uploadedCoverBlob.url;
+                    const blob = await response.blob();
+
+                    const uploadedCoverBlob = await upload(`${fileTitle}_cover.png`, blob, {
+                        access: 'public',
+                        handleUploadUrl: '/api/upload',
+                        contentType: 'image/png'
+                    });
+
+                    coverUrl = uploadedCoverBlob.url;
+                } catch (err) {
+                    console.warn('PDF cover fetch failed, using default cover', err);
+                    coverUrl = '/default-cover.png'; // fallback
+                }
+            } else {
+                coverUrl = '/default-cover.png'; // fallback
             }
 
             const book = await createBook({
@@ -135,7 +146,6 @@ const UploadForm = () => {
             router.push('/');
         } catch (error) {
             console.error(error);
-
             toast.error("Failed to upload book. Please try again later.");
         } finally {
             setIsSubmitting(false);
@@ -151,7 +161,6 @@ const UploadForm = () => {
             <div className="new-book-wrapper">
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                        {/* 1. PDF File Upload */}
                         <FileUploader
                             control={form.control}
                             name="pdfFile"
@@ -163,7 +172,6 @@ const UploadForm = () => {
                             disabled={isSubmitting}
                         />
 
-                        {/* 2. Cover Image Upload */}
                         <FileUploader
                             control={form.control}
                             name="coverImage"
@@ -175,7 +183,6 @@ const UploadForm = () => {
                             disabled={isSubmitting}
                         />
 
-                        {/* 3. Title Input */}
                         <FormField
                             control={form.control}
                             name="title"
@@ -195,7 +202,6 @@ const UploadForm = () => {
                             )}
                         />
 
-                        {/* 4. Author Input */}
                         <FormField
                             control={form.control}
                             name="author"
@@ -215,7 +221,6 @@ const UploadForm = () => {
                             )}
                         />
 
-                        {/* 5. Voice Selector */}
                         <FormField
                             control={form.control}
                             name="persona"
@@ -234,7 +239,6 @@ const UploadForm = () => {
                             )}
                         />
 
-                        {/* 6. Submit Button */}
                         <Button type="submit" className="form-btn" disabled={isSubmitting}>
                             Begin Synthesis
                         </Button>
