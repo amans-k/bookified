@@ -1,8 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, MicOff, Mic } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 import { getBookBySlug } from "@/lib/actions/book.actions";
 import VapiControls from "@/components/VapiControls";
@@ -10,18 +9,27 @@ import VapiControls from "@/components/VapiControls";
 export default async function BookDetailsPage({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: { slug: string };
 }) {
+  // Check authentication
   const { userId } = await auth();
 
   if (!userId) {
     redirect("/sign-in");
   }
 
-  const { slug } = await params;
-  const result = await getBookBySlug(slug);
+  const { slug } = params;
 
-  if (!result.success || !result.data) {
+  // Fetch book safely
+  let result;
+  try {
+    result = await getBookBySlug(slug);
+  } catch (error) {
+    console.error("Error fetching book:", error);
+    redirect("/");
+  }
+
+  if (!result?.success || !result?.data) {
     redirect("/");
   }
 
